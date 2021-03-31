@@ -50,8 +50,8 @@ class(rawDF$type)
 
 Then I visually inspect the data by creating wordclouds for each category.
 ```{r}
-hateful <- rawDF %>% filter(hate_speech_idx == "hateful") # "n/a" should be replaced with "hateful"
-normal <- rawDF %>% filter(hate_speech_idx == "normal") # "n/a" should be replaced with "normal"
+hateful <- rawDF %>% filter(hate_speech_idx == "hateful") # I replaced "n/a" with "hateful" to make the code run
+normal <- rawDF %>% filter(hate_speech_idx == "normal") # I replaced "n/a"with "normal" to make the code run
 
 wordcloud(hateful$text, max.words = 25, scale = c(4, 0.8), colors= c("indianred1","indianred2","indianred3","indianred"))
 wordcloud(normal$text, max.words = 25, scale = c(4, 0.8), colors= c("lightsteelblue1","lightsteelblue2","lightsteelblue3","lightsteelblue"))
