@@ -1,0 +1,117 @@
+---
+title: "Assigment - kNN DIY"
+author:
+  - Thanh Hung Lê - Author
+  - Qiwen Chen - Reviewer
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+   html_notebook:
+    toc: true
+    toc_depth: 2
+---
+
+
+```{r}
+library(tidyverse)
+library(forcats)
+library(readr)
+library(class)
+library(caret)
+library(e1071)
+```
+
+---
+
+## Business Understanding
+Nowadays, blood donation has become common and necessary. However, it is very important to check the quality of the donor's blood to avoid infectious diseases, one of which is hepatitis C. By applying machine learning we could see if it would improve efficiency of the detection potentially infected donors have hepatitis.
+
+## Data Understanding
+The dataset was used comes from UCI : "https://archive.ics.uci.edu/ml/datasets/HCV+data"
+```{r}
+url <- "https://raw.githubusercontent.com/HAN-M3DM-Data-Mining/assignments/master/datasets/KNN-hcvdat0.csv"
+rawDF <- read_csv(url)
+View(rawDF)
+str(rawDF)
+```
+
+
+## Data Preparation
+The first column contains donor IDs and does not contribute information to make prediction so we delete it 
+```{r}
+cleanDF <- rawDF[,-1]
+head(cleanDF)
+
+# the variable name category contains the outcome we would like to predict , We can look at the counts and proportions for the outcomes, using the tables() and prop.tables()functions.
+
+
+cntDiag <- table(cleanDF$Category)
+propDiag <- round(prop.table(cntDiag) * 100 , digits = 1)
+
+cntDiag
+propDiag
+
+cleanDF$Category <- cleanDF$Category %>% factor
+
+# we use factor function to match the requirement of the model
+cleanDF$Category <- fct_collapse(cleanDF$Category, donor = c("0=Blood Donor", "0s=suspect Blood Donor"), 
+                                 hepatitis = c("1=Hepatitis", "2=Fibrosis", "3=Cirrhosis")) #I eliminate the category "suspectdonor" and let "0s=suspect Blood Donor" to be "donor"
+
+levels(cleanDF$Category)
+
+head(cleanDF, 10)
+#  We will take three characteristics and have a closer look.
+summary(cleanDF[c("ALB","BIL","GGT")])
+
+# The three variables have different range hence  we’ll apply normalization to rescale all features to a standard range of values.
+data_norm <- function(x) {((x - min(x)) / (max(x) - min(x)))}
+
+# After normalize data we create train and test set
+testSet1 <- c(1:5)
+testSet2 <- c(1:5)*10
+cat("testSet1:", testSet1, "\n")
+cat("testSet2:", testSet2, "\n")
+
+#cat("Normalized testSet1:", normalize(testSet1), "\n") - this is orginal code that contain an error, normalize should be replace with the function name "data_norm" in this case
+cat("Normalized testSet1:", data_norm(testSet1), "\n") 
+#cat("Normalized testSet2:", normalize(testSet2)　) - this is orginal code that contain an error, normalize should be replace with the function name "data_norm" in this case
+cat("Normalized testSet2:", data_norm(testSet2)　) 
+
+summary(cleanDF)
+
+# because the data has some n/a value so we need to eliminate it 
+cleanDF <- cleanDF %>% na.omit
+cleanDF <- cleanDF[,-3] #this code is missing to remove unnumeric variables, so the function can run
+
+nCols <- dim(cleanDF)[2]
+cleanDF_n <- sapply(2:nCols,
+                    function(x) {
+                      data_norm(cleanDF[,x])
+                    }) %>% as.data.frame() # I have replaced the function name "normalize" with "data_norm"
+
+summary(cleanDF_n[c("ALB", "BIL", "GGT")])
+
+trainDF_feat <- cleanDF_n[1:450,]
+testDF_feat <- cleanDF_n[451:589,]
+
+#trainDF_labels <- cleanDF[1:450, ] - this original code missing a 1 after the command to exclude the labels from the set
+trainDF_labels <- cleanDF[1:450, 1]
+#testDF_labels <- cleanDF[451:589, ] - this original code missing a 1 after the command to exclude the labels from the set
+testDF_labels <- cleanDF[451:589, 1]
+```
+
+
+## Modeling
+Now we have data we need to start training
+```{r}
+cleanDF_test_pred <- knn(train = as.matrix(trainDF_feat), test = as.matrix(testDF_feat), 
+                         cl = as.matrix(trainDF_labels), k = 23)
+head(cleanDF_test_pred) #k should be odd number, so I change it from 24 to 23
+
+confusionMatrix(cleanDF_test_pred, testDF_labels[[1]], positive = NULL, dnn = c("Prediction", "True"))
+```
+
+
+## Evaluation and Deployment
+
+As a reviewer for Thanh's work, I have found and corrected a few errors to make it run smoothly. I have given explanations of the correction in the above by making notes on the code itself.
+Apart from the errors, I also ran the model and saw that this model only have an accuracy of 0.59, which quite low to have for a model. As the accuracy of the model is depended on the quality of data set, I can assume that this data set and/or model is not efficient.Besides that , we have no knowledge in medical aspect to find the correlation between variables. Therefore, I think the overall performance of this model is not really acceptable as it is not very helpful with using it to classify the blood donors vs. Hepatitis C.
